@@ -142,6 +142,14 @@ def test_extract_replaces_stale_mods_and_refuses_unrelated_dirs(tmp_path: Path):
     assert not (blocked / "notes.txt").exists()
     assert (blocked / "alpha" / "meta.json").is_file()
 
+    disguised = tmp_path / "disguised"
+    (disguised / "notes").mkdir(parents=True)
+    note = disguised / "notes" / "meta.json"
+    note.write_text("user data", encoding="utf-8")
+    with pytest.raises(McI18nError, match="not a previous mc_i18n work directory"):
+        extract(only_alpha, disguised)
+    assert note.read_text(encoding="utf-8") == "user data"
+
 
 def test_extract_records_bad_jars_unsafe_names_and_broken_toml(tmp_path: Path):
     jars = tmp_path / "jars"
@@ -179,6 +187,25 @@ def test_extract_records_bad_jars_unsafe_names_and_broken_toml(tmp_path: Path):
     assert solo["mods"][0]["modid"] == "solo"
 
 
+def test_extract_records_corrupt_lang_entry_and_continues(tmp_path: Path):
+    jars = tmp_path / "jars"
+    broken = jars / "broken-entry.jar"
+    _write_jar(broken, {"assets/demo/lang/en_us.json": '{"demo.message": "Hello"}'})
+    raw = bytearray(broken.read_bytes())
+    payload = b'{"demo.message": "Hello"}'
+    offset = raw.find(payload)
+    assert offset >= 0
+    raw[offset] = ord("[")
+    broken.write_bytes(raw)
+    _write_jar(jars / "healthy.jar", {"assets/healthy/lang/en_us.json": '{"healthy.message": "Hi"}'})
+
+    out = tmp_path / "work"
+    index = extract(jars, out)
+
+    assert (out / "healthy" / "en_us.json").is_file()
+    assert any(error["jar"] == "broken-entry.jar" and "CRC" in error["message"] for error in index["errors"])
+
+
 def test_single_declared_mod_describes_a_different_namespace(tmp_path: Path):
     jars = tmp_path / "jars"
     _write_jar(
@@ -200,3 +227,35 @@ def test_single_declared_mod_describes_a_different_namespace(tmp_path: Path):
     assert meta["loader"] == "forge"
     assert meta["description"] == "Shared library with a differently named asset namespace."
     assert meta["declared_mods"][0]["modid"] == "real_mod"
+
+
+def test_extract_reads_quilt_metadata_schema(tmp_path: Path):
+    jars = tmp_path / "jars"
+    _write_jar(
+        jars / "quilt-snack.jar",
+        {
+            "quilt.mod.json": json.dumps(
+                {
+                    "schema_version": 1,
+                    "quilt_loader": {
+                        "id": "quilt_snack",
+                        "version": "2.4.0",
+                        "metadata": {
+                            "name": "Quilt Snack",
+                            "description": "A Quilt mod",
+                            "contributors": {"Ada": "Developer"},
+                        },
+                    },
+                }
+            ),
+            "assets/quilt_snack/lang/en_us.json": '{"quilt_snack.message": "Snack"}',
+        },
+    )
+
+    out = tmp_path / "work"
+    extract(jars, out)
+    meta = json.loads((out / "quilt_snack" / "meta.json").read_text(encoding="utf-8"))
+    assert meta["loader"] == "quilt"
+    assert meta["name"] == "Quilt Snack"
+    assert meta["version"] == "2.4.0"
+    assert meta["authors"] == ["Ada"]

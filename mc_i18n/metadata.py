@@ -119,6 +119,45 @@ def parse_fabric_mod(data: dict[str, Any], loader: str = "fabric") -> dict[str, 
     }
 
 
+def parse_quilt_mod(data: dict[str, Any]) -> dict[str, Any]:
+    quilt = data.get("quilt_loader") if isinstance(data.get("quilt_loader"), dict) else {}
+    metadata = quilt.get("metadata") if isinstance(quilt.get("metadata"), dict) else {}
+    contact = metadata.get("contact") if isinstance(metadata.get("contact"), dict) else {}
+    url = None
+    for key in ("homepage", "issues", "sources"):
+        url = clean_text(contact.get(key))
+        if url:
+            break
+
+    contributors = metadata.get("contributors")
+    if isinstance(contributors, dict):
+        authors = [name.strip() for name in contributors if isinstance(name, str) and name.strip()]
+    else:
+        authors = normalize_authors(contributors)
+
+    declared: list[dict[str, Any]] = []
+    modid = quilt.get("id")
+    if isinstance(modid, str) and modid.strip():
+        modid = modid.strip()
+        declared.append(
+            {
+                "modid": modid,
+                "loader": "quilt",
+                "name": clean_text(metadata.get("name")) or modid,
+                "description": description_text(metadata.get("description")),
+                "version": clean_version(quilt.get("version")),
+                "authors": authors,
+                "url": url,
+            }
+        )
+    return {
+        "loader": "quilt",
+        "license": clean_text(metadata.get("license")),
+        "url": url,
+        "declared_mods": declared,
+    }
+
+
 def parse_pack_mcmeta(data: dict[str, Any]) -> str | None:
     pack = data.get("pack")
     if not isinstance(pack, dict):

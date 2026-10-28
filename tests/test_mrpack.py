@@ -6,7 +6,7 @@ import pytest
 
 from mc_i18n.errors import McI18nError
 from mc_i18n.mrpack import _choose_file, resolve_dependency
-from mc_i18n.pack import pack
+from mc_i18n.pack import MrpackOptions, pack
 
 I18N_FILE = {
     "filename": "I18nUpdateMod-3.7.0-all.jar",
@@ -107,12 +107,14 @@ def test_pack_mrpack_records_modrinth_files(monkeypatch, tmp_path: Path):
     result = pack(
         work,
         out,
-        mrpack_path=mrpack,
-        mc_version="1.20.1",
-        loader="forge",
-        loader_version="47.3.0",
-        name="Lunchtime zh_tw",
-        deps=[("i18nupdatemod", "4ihDUjWs"), ("modstranslationpack", "cYkaQUzr")],
+        mrpack=MrpackOptions(
+            path=mrpack,
+            mc_version="1.20.1",
+            loader="forge",
+            loader_version="47.3.0",
+            name="Lunchtime zh_tw",
+            deps=[("i18nupdatemod", "4ihDUjWs"), ("modstranslationpack", "cYkaQUzr")],
+        ),
     )
     assert [item["path"] for item in result["resolved"]] == [
         "mods/I18nUpdateMod-3.7.0-all.jar",
@@ -178,6 +180,8 @@ def test_duplicate_dependency_is_rejected(tmp_path: Path):
         pack(
             work,
             tmp_path / "out.zip",
-            mrpack_path=tmp_path / "out.mrpack",
-            deps=[("i18nupdatemod", "1"), ("i18nupdatemod", "2")],
+            mrpack=MrpackOptions(
+                path=tmp_path / "out.mrpack",
+                deps=[("i18nupdatemod", "1"), ("i18nupdatemod", "2")],
+            ),
         )

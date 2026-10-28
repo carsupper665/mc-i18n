@@ -37,6 +37,14 @@ def test_collect_strings_walks_nested_objects():
     assert collect_strings({"a": {"b": "c"}, "d": 1, "e": "f"}) == {"a.b": "c", "e": "f"}
 
 
+def test_lang_json_flattens_nested_objects_and_rejects_non_strings():
+    assert load_lang_text('{"group": {"message": "Hello"}}') == {"group.message": "Hello"}
+    with pytest.raises(ValueError, match=r"group\.count.*must be a string"):
+        load_lang_text('{"group": {"count": 3}}')
+    with pytest.raises(ValueError, match="duplicate flattened key"):
+        load_lang_text('{"group.message": "one", "group": {"message": "two"}}')
+
+
 def test_merge_lang_overlay_replaces_strings_and_merges_objects():
     merged = merge_lang({"a": "one", "nest": {"x": "1", "y": "2"}}, {"a": "two", "nest": {"y": "9"}})
     assert merged == {"a": "two", "nest": {"x": "1", "y": "9"}}

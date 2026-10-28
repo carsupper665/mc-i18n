@@ -106,3 +106,21 @@ def test_opencc_missing_tells_you_the_package(monkeypatch, tmp_path: Path):
         ]
     )
     assert code == 1
+
+
+def test_mrpack_only_options_require_mrpack(tmp_path: Path):
+    work = tmp_path / "work"
+    work.mkdir()
+    code = main(
+        [
+            "pack",
+            "--work",
+            str(work),
+            "--out",
+            str(tmp_path / "out.zip"),
+            "--name",
+            "Ignored name",
+        ]
+    )
+    assert code == 1
+    assert not (tmp_path / "out.zip").exists()

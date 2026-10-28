@@ -100,9 +100,9 @@ python -m mc_i18n extract --jars ./jars --out ./work
 python -m mc_i18n extract --jars ./jars --manifest ./manifest.json --out ./work
 ```
 
-`--jars` is a directory of `*.jar` files, or one jar. Subfolders are included only with `--recursive`. Namespaces are lowercased. A jar that is not a zip, or a lang file that is not JSON, is recorded under `errors` and extract continues.
+`--jars` is a directory of `*.jar` files, or one jar. Subfolders are included only with `--recursive`. Namespaces are lowercased. A jar that is not a zip, or a lang entry that is unreadable or invalid JSON, is recorded under `errors` and extract continues.
 
-Running extract again replaces `index.json` and mod folders inside a directory that already looks like a worktree. `--clean` deletes everything else in `--out` as well. A non-empty unrelated directory is left untouched unless you pass `--clean`.
+Running extract again replaces `index.json` and the mod folders recorded by a previous mc_i18n `index.json`. `--clean` deletes everything else in `--out` as well. A non-empty unrelated directory is left untouched unless you pass `--clean`.
 
 ```text
 work/
@@ -127,7 +127,7 @@ Missing lang files are written as `{}`. `meta.json` carries the mod name, descri
 | `missing_in_zh_tw` | keys present in `en_us` and absent in `zh_tw` |
 | `missing_in_zh_cn` | keys present in `en_us` and absent in `zh_cn` |
 
-Comment-style lang files (`//`, `/* */`, trailing commas, a UTF-8 BOM) are accepted and rewritten as strict JSON.
+Comment-style lang files (`//`, `/* */`, trailing commas, a UTF-8 BOM) are accepted and rewritten as strict JSON. Nested objects are flattened to dotted keys. Values that are not strings or objects are rejected because Minecraft lang files require string values.
 
 A CurseForge manifest is optional. Each `files[]` entry is matched when the jar filename contains `fileID` as a digit-bounded number of at least 6 digits. Short numbers such as `47` in `forge-47.3.0.jar` are ignored so version tokens are not treated as file ids. Unmatched jars are listed in `jars_not_in_manifest`.
 
@@ -141,6 +141,8 @@ python -m mc_i18n pack \
 ```
 
 `--translations` is optional. Each overlay is `translations/<modid>/zh_tw.json` and contains only the keys you want to add or replace. An overlay for a namespace that is not in the worktree is still packed.
+
+For keys that also exist in `en_us.json`, an overlay must preserve the same printf and brace placeholders. Pack stops with an error when an LLM translation removes, adds, or changes a placeholder.
 
 Each output `assets/<modid>/lang/zh_tw.json` is built in three layers. A later layer replaces earlier values key by key:
 

@@ -4,8 +4,9 @@ from pathlib import Path
 
 import pytest
 
+from mc_i18n.errors import McI18nError
 from mc_i18n.extract import extract
-from mc_i18n.pack import pack
+from mc_i18n.pack import MrpackOptions, pack
 
 ROOT = Path(__file__).resolve().parents[1]
 JARS = ROOT / "fixtures" / "jars"
@@ -33,12 +34,14 @@ def _pack_fixture(tmp_path: Path, *, opencc: bool = False, translations: Path | 
         translations,
         use_opencc=opencc,
         description="Lunchtime fixture zh_tw",
-        mrpack_path=mrpack,
-        mc_version="1.20.1",
-        loader="forge",
-        loader_version="47.3.0",
-        name="Lunchtime zh_tw",
-        version_id="1.0.0",
+        mrpack=MrpackOptions(
+            path=mrpack,
+            mc_version="1.20.1",
+            loader="forge",
+            loader_version="47.3.0",
+            name="Lunchtime zh_tw",
+            version_id="1.0.0",
+        ),
     )
     return work, out, mrpack, result
 
@@ -125,3 +128,17 @@ def test_overlay_for_unknown_modid_is_packed(tmp_path: Path):
     assert result["lang_files"] == ["assets/extra_pot/lang/zh_tw.json"]
     assert _read(out, "pack.mcmeta")["pack"]["pack_format"] == 18
     assert _read(out, "assets/extra_pot/lang/zh_tw.json") == {"block.extra_pot.lid": "鍋蓋"}
+
+
+def test_overlay_must_preserve_source_placeholders(tmp_path: Path):
+    work = tmp_path / "work" / "demo"
+    work.mkdir(parents=True)
+    (work / "en_us.json").write_text(
+        '{"demo.message": "Hello %1$s %% {count}"}\n', encoding="utf-8"
+    )
+    translations = tmp_path / "translations" / "demo"
+    translations.mkdir(parents=True)
+    (translations / "zh_tw.json").write_text('{"demo.message": "你好"}\n', encoding="utf-8")
+
+    with pytest.raises(McI18nError, match=r"demo\.message.*placeholder"):
+        pack(tmp_path / "work", tmp_path / "out.zip", tmp_path / "translations")

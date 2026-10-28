@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import json
 import re
+from collections import Counter
 from pathlib import Path
 from typing import Any
 
@@ -81,10 +82,44 @@ def load_lang_text(text: str) -> dict[str, Any]:
         parsed = json.loads(cleaned)
     if not isinstance(parsed, dict):
         raise ValueError("lang file must be a JSON object")
-    return parsed
+    return flatten_lang(parsed)
+
+
+def flatten_lang(data: dict[str, Any]) -> dict[str, str]:
+    """Flatten nested lang objects and reject values Minecraft cannot load."""
+    flattened: dict[str, str] = {}
+
+    def visit(obj: dict[str, Any], prefix: str = "") -> None:
+        for key, value in obj.items():
+            path = f"{prefix}.{key}" if prefix else key
+            if isinstance(value, str):
+                if path in flattened:
+                    raise ValueError(f"duplicate flattened key: {path}")
+                flattened[path] = value
+            elif isinstance(value, dict):
+                visit(value, path)
+            else:
+                raise ValueError(f"lang value for {path!r} must be a string or object")
+
+    visit(data)
+    return flattened
 
 
 def strip_json_comments(text: str) -> str:
+    return _clean_relaxed_json(text, remove_comments=True, remove_trailing_commas=False)
+
+
+def strip_trailing_commas(text: str) -> str:
+    return _clean_relaxed_json(text, remove_comments=False, remove_trailing_commas=True)
+
+
+def _clean_relaxed_json(
+    text: str,
+    *,
+    remove_comments: bool,
+    remove_trailing_commas: bool,
+) -> str:
+    """Transform relaxed JSON while sharing one string-aware scanner."""
     out: list[str] = []
     i = 0
     n = len(text)
@@ -107,46 +142,18 @@ def strip_json_comments(text: str) -> str:
             out.append(char)
             i += 1
             continue
-        if char == "/" and i + 1 < n and text[i + 1] == "/":
+        if remove_comments and char == "/" and i + 1 < n and text[i + 1] == "/":
             i += 2
             while i < n and text[i] not in "\r\n":
                 i += 1
             continue
-        if char == "/" and i + 1 < n and text[i + 1] == "*":
+        if remove_comments and char == "/" and i + 1 < n and text[i + 1] == "*":
             i += 2
             while i + 1 < n and not (text[i] == "*" and text[i + 1] == "/"):
                 i += 1
             i = min(n, i + 2)
             continue
-        out.append(char)
-        i += 1
-    return "".join(out)
-
-
-def strip_trailing_commas(text: str) -> str:
-    out: list[str] = []
-    i = 0
-    n = len(text)
-    in_string = False
-    escape = False
-    while i < n:
-        char = text[i]
-        if in_string:
-            out.append(char)
-            if escape:
-                escape = False
-            elif char == "\\":
-                escape = True
-            elif char == '"':
-                in_string = False
-            i += 1
-            continue
-        if char == '"':
-            in_string = True
-            out.append(char)
-            i += 1
-            continue
-        if char == ",":
+        if remove_trailing_commas and char == ",":
             j = i + 1
             while j < n and text[j] in " \t\r\n":
                 j += 1
@@ -207,3 +214,8 @@ def protect_placeholders(text: str, convert) -> str:
         if index < len(holders):
             pieces.append(holders[index])
     return "".join(pieces)
+
+
+def placeholder_counts(text: str) -> Counter[str]:
+    """Return the exact placeholder multiset used by one translation string."""
+    return Counter(_PLACEHOLDER.findall(text))

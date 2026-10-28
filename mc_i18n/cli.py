@@ -14,6 +14,7 @@ from mc_i18n.pack import (
     DEFAULT_DESCRIPTION,
     DEFAULT_MC_VERSION,
     DEFAULT_PACK_FORMAT,
+    MrpackOptions,
     emit_summary,
     format_pack_summary,
     pack,
@@ -91,11 +92,11 @@ def build_parser() -> argparse.ArgumentParser:
     pack_parser.add_argument("--pack-format", type=int, default=DEFAULT_PACK_FORMAT)
     pack_parser.add_argument("--description", default=DEFAULT_DESCRIPTION)
     pack_parser.add_argument("--mrpack", type=Path, help="Also write a Modrinth mrpack (formatVersion 1)")
-    pack_parser.add_argument("--mc-version", default=DEFAULT_MC_VERSION)
-    pack_parser.add_argument("--loader", choices=("forge", "neoforge", "fabric", "quilt"), default="forge")
+    pack_parser.add_argument("--mc-version")
+    pack_parser.add_argument("--loader", choices=("forge", "neoforge", "fabric", "quilt"))
     pack_parser.add_argument("--loader-version", help="Loader version recorded in the mrpack, such as 47.3.0")
     pack_parser.add_argument("--name", help="mrpack name. Defaults to the resource pack zip stem.")
-    pack_parser.add_argument("--version-id", default="1.0.0", help="mrpack versionId")
+    pack_parser.add_argument("--version-id", help="mrpack versionId (default: 1.0.0)")
     pack_parser.add_argument("--summary", help="mrpack summary")
     pack_parser.add_argument(
         "--i18n-update-mod",
@@ -143,6 +144,29 @@ def _cmd_pack(args: argparse.Namespace) -> int:
             raise McI18nError("--mods-translation-pack needs a version id or version number")
         deps.append(("modstranslationpack", version))
     deps.extend(args.dep or [])
+    mrpack_args = (
+        args.mc_version,
+        args.loader,
+        args.loader_version,
+        args.name,
+        args.version_id,
+        args.summary,
+        *deps,
+    )
+    if args.mrpack is None and any(value is not None for value in mrpack_args):
+        raise McI18nError("mrpack options require --mrpack")
+    mrpack = None
+    if args.mrpack is not None:
+        mrpack = MrpackOptions(
+            path=args.mrpack,
+            mc_version=args.mc_version or DEFAULT_MC_VERSION,
+            loader=args.loader or "forge",
+            loader_version=args.loader_version,
+            name=args.name,
+            version_id=args.version_id or "1.0.0",
+            summary=args.summary,
+            deps=deps,
+        )
     result = pack(
         args.work,
         args.out,
@@ -150,14 +174,7 @@ def _cmd_pack(args: argparse.Namespace) -> int:
         use_opencc=args.opencc,
         pack_format=args.pack_format,
         description=args.description,
-        mrpack_path=args.mrpack,
-        mc_version=args.mc_version,
-        loader=args.loader,
-        loader_version=args.loader_version,
-        name=args.name,
-        version_id=args.version_id,
-        summary=args.summary,
-        deps=deps,
+        mrpack=mrpack,
     )
     emit_summary(format_pack_summary(result, args.out, args.mrpack))
     return 0

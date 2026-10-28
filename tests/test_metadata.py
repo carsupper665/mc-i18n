@@ -1,4 +1,9 @@
-from mc_i18n.metadata import parse_fabric_mod, parse_mods_toml, pick_declared_mod
+from mc_i18n.metadata import (
+    parse_fabric_mod,
+    parse_mods_toml,
+    parse_quilt_mod,
+    pick_declared_mod,
+)
 
 
 def test_mods_toml_authors_and_description():
@@ -51,3 +56,34 @@ def test_pick_declared_mod_falls_back_only_when_one_mod_is_declared():
     two = only + [{"modid": "second", "loader": "forge", "name": "Second"}]
     assert pick_declared_mod("missing", two) is None
     assert pick_declared_mod("second", two)["name"] == "Second"
+
+
+def test_quilt_metadata_uses_quilt_loader_schema():
+    parsed = parse_quilt_mod(
+        {
+            "schema_version": 1,
+            "quilt_loader": {
+                "id": "quilt_snack",
+                "version": "2.4.0",
+                "metadata": {
+                    "name": "Quilt Snack",
+                    "description": "A Quilt mod",
+                    "contributors": {"Ada": "Developer", "Lin": "Translator"},
+                    "contact": {"homepage": "https://example.invalid/quilt-snack"},
+                    "license": "MIT",
+                },
+            },
+        }
+    )
+    mod = parsed["declared_mods"][0]
+    assert mod == {
+        "modid": "quilt_snack",
+        "loader": "quilt",
+        "name": "Quilt Snack",
+        "description": "A Quilt mod",
+        "version": "2.4.0",
+        "authors": ["Ada", "Lin"],
+        "url": "https://example.invalid/quilt-snack",
+    }
+    assert parsed["license"] == "MIT"
+    assert parsed["url"] == "https://example.invalid/quilt-snack"
