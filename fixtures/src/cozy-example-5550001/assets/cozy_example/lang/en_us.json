@@ -1,0 +1,6 @@
+{
+  "block.cozy_example.oven": "Cozy Oven",
+  "item.cozy_example.broth": "Vegetable Broth",
+  "item.cozy_example.note": "Save %1$s %% {count}",
+  "tooltip.cozy_example.quality": "Default software"
+}

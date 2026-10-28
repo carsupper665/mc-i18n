@@ -1,0 +1,13 @@
+{
+  "schemaVersion": 1,
+  "id": "fabric_snack",
+  "version": "0.3.1",
+  "name": "Fabric Snack",
+  "description": "A small Fabric-side snack used in the Lunchtime fixture.",
+  "authors": ["Lunchtime"],
+  "contact": {
+    "homepage": "https://example.invalid/fabric-snack"
+  },
+  "license": "MIT",
+  "environment": "client"
+}

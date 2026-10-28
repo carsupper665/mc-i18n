@@ -1,0 +1,34 @@
+modLoader = "javafml"
+loaderVersion = "[47,)"
+license = "MIT"
+issueTrackerURL = "https://example.invalid/cozy"
+
+[[mods]]
+modId = "cozy_example"
+version = "1.2.0"
+displayName = "Cozy Example"
+authors = "Lunchtime"
+description = """
+A tiny oven and broth mod used to smoke-test Lunchtime localization.
+"""
+
+[[dependencies.cozy_example]]
+modId = "forge"
+mandatory = true
+versionRange = "[47,)"
+ordering = "NONE"
+side = "BOTH"
+
+[[mods]]
+modId = "kitchen"
+version = "1.2.0"
+displayName = "Kitchen"
+authors = ["Lunchtime", "Fixture"]
+description = "Extra cooking blocks that ship a partial zh_tw."
+
+[[dependencies.kitchen]]
+modId = "forge"
+mandatory = true
+versionRange = "[47,)"
+ordering = "NONE"
+side = "BOTH"

@@ -1,0 +1,25 @@
+[project]
+name = "mc-i18n"
+version = "0.1.0"
+description = "Extract Minecraft mod language files and pack a zh_tw resource pack."
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = []
+
+[project.optional-dependencies]
+opencc = ["opencc-python-reimplemented>=0.1.6"]
+dev = ["pytest>=8.0", "opencc-python-reimplemented>=0.1.6"]
+
+[project.scripts]
+mc-i18n = "mc_i18n.cli:main"
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+packages = ["mc_i18n"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"

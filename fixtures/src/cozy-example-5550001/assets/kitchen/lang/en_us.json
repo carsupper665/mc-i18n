@@ -1,0 +1,6 @@
+{
+  // stove block
+  "block.kitchen.stove": "Stove",
+  "item.kitchen.spoon": "Wooden Spoon",
+  "item.kitchen.bowl": "Rice Bowl",
+}

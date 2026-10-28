@@ -1,0 +1,6 @@
+{
+  "block.cozy_example.oven": "温馨烤箱",
+  "item.cozy_example.broth": "蔬菜高汤",
+  "item.cozy_example.note": "保存 %1$s %% {count}",
+  "tooltip.cozy_example.quality": "默认软件"
+}
